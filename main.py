@@ -1,26 +1,16 @@
-import re
 from datetime import datetime
-from pprint import pprint
-
-from typing import Any, Dict
 
 import gspread
 import requests
 
-from bs4 import BeautifulSoup
-import google.auth
-
-URL = "https://portal.rockgympro.com/portal/public/7a2ec613bb982d4ba91785c2cdb45902/occupancy?&iframeid=occupancyCounter&fId=1325"
-DATA_PATTERN = re.compile("var data =(.*?);", re.DOTALL)
-TIME_PATTERN = re.compile("\(.*\)")
+URL = "https://display.safespace.io/value/live/a7796f34"
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
     'https://www.googleapis.com/auth/drive',
 ]
-SHEET_ID = "1vpa1DXR4zAlEcrd7Vgfk7IeSwm_umDYABiEh-u1Ky9Q"
+SHEET_ID = "1QKn9DVrufNj0XUu3_bIH8CabJnxElhtLN1NYAT2YYck"
 
-credentials, _ = google.auth.default(scopes=SCOPES)
-client = gspread.authorize(credentials)
+client = gspread.service_account(filename='/config/get-vital-data-creds')
 
 sheet = client.open_by_key(SHEET_ID).get_worksheet(0)
 
@@ -30,20 +20,13 @@ def process_data(event, context):
     """
     data = get_data()
     values = [
-        [loc, a['capacity'], a['count'], str(datetime.now())] for loc,a in data.items()
+        [data, str(datetime.now())]
     ]
     sheet.append_rows(values)
 
-def get_data() -> Dict[str, Dict[str, Any]]:
+def get_data() -> str:
     """
-    {'BOS': {'capacity': 50,
-    'count': 6,
-    'subLabel': 'Current climber count',
-    'lastUpdate': 'Last updated:&nbspnow  (2:35 PM)'},
+    "74"
     """
     r = requests.get(URL)
-    s = BeautifulSoup(r.text)
-    for script in s.find_all('script'):
-        data = DATA_PATTERN.search(str(script))
-        if data:
-            return eval(data.groups()[0])
+    return r.text
